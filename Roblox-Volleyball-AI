@@ -1,0 +1,105 @@
+local player = game.Players.LocalPlayer
+local aiCharacter = player.Character or player.CharacterAdded:Wait() -- Reference to the AI character
+local ball = game.Workspace:WaitForChild("Ball") -- Ensure the ball is present
+local AIState = "Idle" -- Initial state
+
+-- Speed settings
+local sprintSpeed = 20
+local normalSpeed = 10
+
+-- Function to serve the ball
+function serveBall()
+    aiCharacter:MoveTo(Vector3.new(0, 1, -5)) -- Move to serve position
+    wait(1) -- Simulate timing for the serve
+    ball.Velocity = Vector3.new(0, 20, 40) -- Serve the ball
+end
+
+-- Function to dump the ball
+function dumpBall()
+    ball.Velocity = Vector3.new(0, 0, -30) -- Dump the ball in a specific direction
+end
+
+-- Function to spawn the AI character
+function spawnAI()
+    aiCharacter:MoveTo(Vector3.new(0, 1, 0)) -- Move to spawn position
+end
+
+-- Function to perform a front set
+function frontSet()
+    if (aiCharacter.PrimaryPart.Position - ball.Position).magnitude < 5 then
+        ball.Velocity = Vector3.new(0, 25, 0) -- Set the ball upwards
+    end
+end
+
+-- Function to perform a back set
+function backSet()
+    if (aiCharacter.PrimaryPart.Position - ball.Position).magnitude < 5 then
+        ball.Velocity = Vector3.new(0, 20, 20) -- Set the ball backward
+    end
+end
+
+-- Function to jump
+function jump()
+    aiCharacter:FindFirstChild("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
+end
+
+-- Function to enable jump mode based on the ball position
+function jumpMode()
+    if ball.Position.Y > aiCharacter.PrimaryPart.Position.Y + 5 then -- Check if the ball is high enough
+        jump()
+    end
+end
+
+-- Function to increase sprint speed
+function increaseSprint()
+    aiCharacter.Humanoid.WalkSpeed = sprintSpeed
+end
+
+-- Function to decrease sprint speed
+function decreaseSprint()
+    aiCharacter.Humanoid.WalkSpeed = normalSpeed
+end
+
+-- Function to perform a dive
+function dive()
+    if (aiCharacter.PrimaryPart.Position - ball.Position).magnitude < 5 and ball.Position.Y < 2 then
+        -- Dive towards the ball if it's low
+        aiCharacter:MoveTo(ball.Position + Vector3.new(0, -3, 0)) -- Adjust dive position
+    end
+end
+
+-- Function to click and perform actions
+function clickAction()
+    dumpBall() -- Perform a dump on click
+end
+
+-- Function to update AI based on the situation
+function updateAI()
+    if AIState == "Idle" then
+        spawnAI()
+        AIState = "Serve"
+    elseif AIState == "Serve" then
+        serveBall()
+        AIState = "Defend"
+    elseif AIState == "Defend" then
+        if (aiCharacter.PrimaryPart.Position - ball.Position).magnitude < 5 then
+            frontSet() -- Attempt a front set
+            backSet() -- Optionally perform a back set
+            jumpMode() -- Jump if the ball is high
+            dive() -- Dive if the ball is low
+        end
+    end
+end
+
+-- Update AI behavior every frame
+game:GetService("RunService").Stepped:Connect(updateAI)
+
+-- Optional: Bind actions to keys (e.g., clicking)
+game.UserInputService.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then -- Left mouse click
+        clickAction()
+    end
+end)
+
+-- Initialize
+increaseSprint() -- Start with increased speed
